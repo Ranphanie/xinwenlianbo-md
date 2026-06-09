@@ -4,7 +4,7 @@ import argparse
 import json
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, datetime, time, timezone, timedelta
 from pathlib import Path
 from typing import Iterable
 from urllib.parse import quote, urljoin
@@ -17,6 +17,8 @@ CCTV_XWLB_INDEX_URL = "https://tv.cctv.com/lm/xwlb/index.shtml"
 DEFAULT_REPO = "Ranphanie/xinwenlianbo-md"
 DEFAULT_BRANCH = "main"
 DEFAULT_OBSIDIAN_VAULT = "新闻联播"
+BEIJING_TZ = timezone(timedelta(hours=8))
+DEFAULT_NOT_BEFORE = time(20, 30)
 
 
 @dataclass(frozen=True)
@@ -27,7 +29,16 @@ class GeneratedPaths:
 
 
 def beijing_today() -> date:
-    return datetime.now(timezone(timedelta(hours=8))).date()
+    return now_beijing().date()
+
+
+def now_beijing() -> datetime:
+    return datetime.now(BEIJING_TZ)
+
+
+def should_skip_before_airtime(broadcast_date: date, now: datetime, not_before: time) -> bool:
+    beijing_now = now.astimezone(BEIJING_TZ)
+    return broadcast_date == beijing_now.date() and beijing_now.time() < not_before
 
 
 def fetch_text(url: str, timeout: int = 20) -> str:
@@ -206,12 +217,36 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="不使用年份子目录，直接生成到输出目录根部。",
     )
+    parser.add_argument(
+        "--skip-before-airtime",
+        action="store_true",
+        help="如果北京时间当天早于 20:30，则静默跳过，避免早晨误触发抓取未播出的节目。",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     broadcast_date = date.fromisoformat(args.date) if args.date else beijing_today()
+    if args.skip_before_airtime and should_skip_before_airtime(
+        broadcast_date=broadcast_date,
+        now=now_beijing(),
+        not_before=DEFAULT_NOT_BEFORE,
+    ):
+        print(
+            json.dumps(
+                {
+                    "date": broadcast_date.isoformat(),
+                    "status": "skipped",
+                    "reason": "before_airtime",
+                    "not_before": DEFAULT_NOT_BEFORE.strftime("%H:%M"),
+                    "timezone": "Asia/Shanghai",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return
     payload = generate(
         broadcast_date=broadcast_date,
         out_dir=Path(args.out_dir),
