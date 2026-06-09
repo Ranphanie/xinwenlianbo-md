@@ -1,11 +1,12 @@
 import json
-from datetime import date
+from datetime import date, datetime, time, timedelta, timezone
 
 from scripts.generate_xwlb import (
     build_latest_payload,
     find_episode_url,
     parse_episode_summary,
     render_markdown,
+    should_skip_before_airtime,
 )
 
 
@@ -87,3 +88,36 @@ def test_build_latest_payload_points_to_raw_markdown_and_obsidian_file():
     assert payload["obsidian"]["file"] == "2026/2026-06-08 新闻联播"
     assert "file=2026%2F2026-06-08%20%E6%96%B0%E9%97%BB%E8%81%94%E6%92%AD" in payload["obsidian"]["uri"]
     assert json.dumps(payload, ensure_ascii=False)
+
+
+def test_should_skip_same_day_before_airtime():
+    beijing_tz = timezone(timedelta(hours=8))
+    now = datetime(2026, 6, 9, 5, 18, tzinfo=beijing_tz)
+
+    assert should_skip_before_airtime(
+        broadcast_date=date(2026, 6, 9),
+        now=now,
+        not_before=time(20, 30),
+    )
+
+
+def test_should_not_skip_at_original_evening_schedule():
+    beijing_tz = timezone(timedelta(hours=8))
+    now = datetime(2026, 6, 9, 21, 30, tzinfo=beijing_tz)
+
+    assert not should_skip_before_airtime(
+        broadcast_date=date(2026, 6, 9),
+        now=now,
+        not_before=time(20, 30),
+    )
+
+
+def test_should_not_skip_previous_day_manual_generation():
+    beijing_tz = timezone(timedelta(hours=8))
+    now = datetime(2026, 6, 9, 5, 18, tzinfo=beijing_tz)
+
+    assert not should_skip_before_airtime(
+        broadcast_date=date(2026, 6, 8),
+        now=now,
+        not_before=time(20, 30),
+    )
