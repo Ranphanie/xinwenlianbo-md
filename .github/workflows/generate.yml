@@ -29,9 +29,12 @@ jobs:
 
       - name: Generate markdown
         run: |
-          for attempt in 1 2 3 4 5 6; do
-            if python scripts/generate_xwlb.py --out-dir generated --repo Ranphanie/xinwenlianbo-md --branch main --obsidian-vault 新闻联播; then
+          for attempt in 1 2 3 4; do
+            if python scripts/generate_xwlb.py --out-dir generated --repo Ranphanie/xinwenlianbo-md --branch main --obsidian-vault 新闻联播 --skip-before-airtime; then
               exit 0
+            fi
+            if [ "$attempt" = "4" ]; then
+              break
             fi
             echo "Attempt ${attempt} failed; waiting before retry..."
             sleep 600
