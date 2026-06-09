@@ -40,7 +40,7 @@ python scripts/generate_xwlb.py --out-dir generated --repo Ranphanie/xinwenlianb
 
 ## GitHub Actions
 
-`.github/workflows/generate.yml` 会每天北京时间 21:30 自动运行。流程如下：
+`.github/workflows/generate.yml` 会每天北京时间 21:30 自动运行。若 GitHub Actions 在北京时间 20:30 前异常触发，脚本会静默跳过，避免抓取当天尚未播出的节目。流程如下：
 
 1. 安装 Python 依赖。
 2. 运行测试。
