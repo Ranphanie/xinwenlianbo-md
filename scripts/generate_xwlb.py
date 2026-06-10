@@ -4,7 +4,7 @@ import argparse
 import json
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from typing import Iterable
 from urllib.parse import quote, urljoin
@@ -18,7 +18,14 @@ DEFAULT_REPO = "Ranphanie/xinwenlianbo-md"
 DEFAULT_BRANCH = "main"
 DEFAULT_OBSIDIAN_VAULT = "新闻联播"
 BEIJING_TZ = timezone(timedelta(hours=8))
-DEFAULT_NOT_BEFORE = time(20, 30)
+
+
+class BroadcastNotReady(ValueError):
+    """The target broadcast is not published on the CCTV index yet."""
+
+
+class BroadcastDateMismatch(ValueError):
+    """The discovered episode URL does not belong to the requested date."""
 
 
 @dataclass(frozen=True)
@@ -34,11 +41,6 @@ def beijing_today() -> date:
 
 def now_beijing() -> datetime:
     return datetime.now(BEIJING_TZ)
-
-
-def should_skip_before_airtime(broadcast_date: date, now: datetime, not_before: time) -> bool:
-    beijing_now = now.astimezone(BEIJING_TZ)
-    return broadcast_date == beijing_now.date() and beijing_now.time() < not_before
 
 
 def fetch_text(url: str, timeout: int = 20) -> str:
@@ -73,7 +75,18 @@ def find_episode_url(index_html: str, target_date: date, base_url: str = CCTV_XW
     if candidates:
         return candidates[0]
 
-    raise ValueError(f"没有在央视网栏目页找到 {yyyymmdd} 的《新闻联播》节目链接")
+    raise BroadcastNotReady(f"没有在央视网栏目页找到 {yyyymmdd} 的《新闻联播》节目链接")
+
+
+def episode_url_matches_date(episode_url: str, target_date: date) -> bool:
+    slash_date = target_date.strftime("/%Y/%m/%d/")
+    compact_date = target_date.strftime("%Y%m%d")
+    short_compact_date = target_date.strftime("%y%m%d")
+    return (
+        slash_date in episode_url
+        or compact_date in episode_url
+        or short_compact_date in episode_url
+    )
 
 
 def parse_episode_summary(episode_html: str) -> list[str]:
@@ -178,6 +191,10 @@ def generate(
 ) -> dict:
     index_html = fetch_text(index_url)
     episode_url = find_episode_url(index_html, broadcast_date, base_url=index_url)
+    if not episode_url_matches_date(episode_url, broadcast_date):
+        raise BroadcastDateMismatch(
+            f"栏目页链接日期与目标日期不一致：target={broadcast_date.isoformat()} url={episode_url}"
+        )
     episode_html = fetch_text(episode_url)
     summary_items = parse_episode_summary(episode_html)
 
@@ -205,6 +222,49 @@ def generate(
     return payload
 
 
+def generate_or_skip(
+    broadcast_date: date,
+    out_dir: Path,
+    repo: str,
+    branch: str,
+    obsidian_vault: str,
+    use_year_folder: bool,
+    index_url: str = CCTV_XWLB_INDEX_URL,
+) -> dict:
+    try:
+        return generate(
+            broadcast_date=broadcast_date,
+            out_dir=out_dir,
+            repo=repo,
+            branch=branch,
+            obsidian_vault=obsidian_vault,
+            use_year_folder=use_year_folder,
+            index_url=index_url,
+        )
+    except BroadcastNotReady as exc:
+        return build_skip_payload(
+            broadcast_date=broadcast_date,
+            reason="episode_not_ready",
+            message=str(exc),
+        )
+    except BroadcastDateMismatch as exc:
+        return build_skip_payload(
+            broadcast_date=broadcast_date,
+            reason="date_mismatch",
+            message=str(exc),
+        )
+
+
+def build_skip_payload(broadcast_date: date, reason: str, message: str) -> dict:
+    return {
+        "date": broadcast_date.isoformat(),
+        "status": "skipped",
+        "reason": reason,
+        "message": message,
+        "timezone": "Asia/Shanghai",
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="生成当天《新闻联播》Markdown 文稿。")
     parser.add_argument("--date", help="指定日期，格式为 YYYY-MM-DD。默认使用北京时间当天。")
@@ -217,37 +277,13 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="不使用年份子目录，直接生成到输出目录根部。",
     )
-    parser.add_argument(
-        "--skip-before-airtime",
-        action="store_true",
-        help="如果北京时间当天早于 20:30，则静默跳过，避免早晨误触发抓取未播出的节目。",
-    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     broadcast_date = date.fromisoformat(args.date) if args.date else beijing_today()
-    if args.skip_before_airtime and should_skip_before_airtime(
-        broadcast_date=broadcast_date,
-        now=now_beijing(),
-        not_before=DEFAULT_NOT_BEFORE,
-    ):
-        print(
-            json.dumps(
-                {
-                    "date": broadcast_date.isoformat(),
-                    "status": "skipped",
-                    "reason": "before_airtime",
-                    "not_before": DEFAULT_NOT_BEFORE.strftime("%H:%M"),
-                    "timezone": "Asia/Shanghai",
-                },
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
-        return
-    payload = generate(
+    payload = generate_or_skip(
         broadcast_date=broadcast_date,
         out_dir=Path(args.out_dir),
         repo=args.repo,
