@@ -40,14 +40,11 @@ python scripts/generate_xwlb.py --out-dir generated --repo Ranphanie/xinwenlianb
 
 ## GitHub Actions
 
-`.github/workflows/generate.yml` 会在北京时间晚间多个时间点自动运行：
+`.github/workflows/generate.yml` 会在北京时间晚间自动运行：
 
-- 20:45
 - 21:15
-- 21:45
-- 22:15
 
-这些时间都显式使用 `Asia/Shanghai` 时区，并避开整点高峰。脚本默认以「北京时间当天」为目标；如果央视栏目页还没有当天节目，或链接日期与目标日期不一致，脚本只输出 `skipped` 状态，不更新 `latest.json`，避免手机打开旧文稿。
+这个时间显式使用 `Asia/Shanghai` 时区，并避开整点高峰。脚本默认以「北京时间当天」为目标；如果央视栏目页还没有当天节目，或链接日期与目标日期不一致，脚本只输出 `skipped` 状态，不更新 `latest.json`，避免手机打开旧文稿。
 
 流程如下：
 
