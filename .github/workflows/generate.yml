@@ -2,9 +2,22 @@ name: Generate Xinwenlianbo Markdown
 
 on:
   schedule:
-    # 21:30 Beijing time. GitHub Actions cron uses UTC.
-    - cron: "30 13 * * *"
+    # Beijing evening fallback windows. Avoid exact hours because GitHub
+    # scheduled workflows can be delayed or dropped during high-load minutes.
+    - cron: "45 20 * * *"
+      timezone: "Asia/Shanghai"
+    - cron: "15 21 * * *"
+      timezone: "Asia/Shanghai"
+    - cron: "45 21 * * *"
+      timezone: "Asia/Shanghai"
+    - cron: "15 22 * * *"
+      timezone: "Asia/Shanghai"
   workflow_dispatch:
+    inputs:
+      date:
+        description: "Optional broadcast date, YYYY-MM-DD. Leave empty for Beijing today."
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -27,10 +40,24 @@ jobs:
       - name: Run tests
         run: python -m pytest
 
-      - name: Generate markdown
+      - name: Print trigger context
         run: |
+          echo "event=${{ github.event_name }}"
+          echo "schedule=${{ github.event.schedule }}"
+          echo "requested_date=${{ github.event.inputs.date }}"
+          echo "UTC now: $(date -u '+%Y-%m-%d %H:%M:%S %Z')"
+          echo "Beijing now: $(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S %Z')"
+
+      - name: Generate markdown
+        env:
+          REQUESTED_DATE: ${{ github.event.inputs.date }}
+        run: |
+          DATE_ARGS=()
+          if [ -n "$REQUESTED_DATE" ]; then
+            DATE_ARGS=(--date "$REQUESTED_DATE")
+          fi
           for attempt in 1 2 3 4; do
-            if python scripts/generate_xwlb.py --out-dir generated --repo Ranphanie/xinwenlianbo-md --branch main --obsidian-vault 新闻联播 --skip-before-airtime; then
+            if python scripts/generate_xwlb.py "${DATE_ARGS[@]}" --out-dir generated --repo Ranphanie/xinwenlianbo-md --branch main --obsidian-vault 新闻联播; then
               exit 0
             fi
             if [ "$attempt" = "4" ]; then
