@@ -40,21 +40,33 @@ python scripts/generate_xwlb.py --out-dir generated --repo Ranphanie/xinwenlianb
 
 ## GitHub Actions
 
-`.github/workflows/generate.yml` 会每天北京时间 21:30 自动运行。若 GitHub Actions 在北京时间 20:30 前异常触发，脚本会静默跳过，避免抓取当天尚未播出的节目。流程如下：
+`.github/workflows/generate.yml` 会在北京时间晚间多个时间点自动运行：
+
+- 20:45
+- 21:15
+- 21:45
+- 22:15
+
+这些时间都显式使用 `Asia/Shanghai` 时区，并避开整点高峰。脚本默认以「北京时间当天」为目标；如果央视栏目页还没有当天节目，或链接日期与目标日期不一致，脚本只输出 `skipped` 状态，不更新 `latest.json`，避免手机打开旧文稿。
+
+流程如下：
 
 1. 安装 Python 依赖。
 2. 运行测试。
-3. 抓取当天《新闻联播》。
-4. 生成 `generated/YYYY/YYYY-MM-DD 新闻联播.md` 和 `generated/latest.json`。
+3. 抓取北京时间当天《新闻联播》。
+4. 只有当天节目已发布且日期匹配时，生成 `generated/YYYY/YYYY-MM-DD 新闻联播.md` 和 `generated/latest.json`。
 5. 如果产物有变化，自动提交回仓库。
 
-也可以在 GitHub 网页进入 **Actions → Generate Xinwenlianbo Markdown → Run workflow** 手动运行。
+也可以通过两种方式手动运行：
+
+- 在 GitHub 网页进入 **Actions → Generate Xinwenlianbo Markdown → Run workflow**。
+- 用 iPhone 快捷指令调用 GitHub `workflow_dispatch` API 触发。
 
 ## iPhone 快捷指令设置
 
 在 iPhone 上打开「快捷指令」，新建一个快捷指令，例如命名为「保存新闻联播」。
 
-快捷指令动作按下面顺序添加：
+基础读取版快捷指令动作按下面顺序添加：
 
 1. **获取 URL 内容**
    - URL 填：
@@ -81,6 +93,8 @@ python scripts/generate_xwlb.py --out-dir generated --repo Ranphanie/xinwenlianb
 - 关闭「运行前询问」
 
 如果 iOS 提示需要确认打开 Obsidian，属于系统限制；确认一次后通常会更顺。
+
+如果配置了「手机触发 GitHub Actions」版本，快捷指令应先触发 workflow，再轮询 `latest.json`。只有当 `latest.json` 的 `date` 等于当天北京时间日期时，才继续下载 Markdown 并打开 Obsidian；否则停止并提示当天文稿尚未生成。
 
 ## 本地开发
 
