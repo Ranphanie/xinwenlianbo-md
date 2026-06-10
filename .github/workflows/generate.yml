@@ -2,15 +2,9 @@ name: Generate Xinwenlianbo Markdown
 
 on:
   schedule:
-    # Beijing evening fallback windows. Avoid exact hours because GitHub
-    # scheduled workflows can be delayed or dropped during high-load minutes.
-    - cron: "45 20 * * *"
-      timezone: "Asia/Shanghai"
+    # Beijing evening run. Avoid exact hours because GitHub scheduled
+    # workflows can be delayed or dropped during high-load minutes.
     - cron: "15 21 * * *"
-      timezone: "Asia/Shanghai"
-    - cron: "45 21 * * *"
-      timezone: "Asia/Shanghai"
-    - cron: "15 22 * * *"
       timezone: "Asia/Shanghai"
   workflow_dispatch:
     inputs:
