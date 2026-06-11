@@ -166,11 +166,14 @@ def test_render_markdown_adds_space_after_ordered_list_marker():
 
 
 def test_build_latest_payload_points_to_raw_markdown_and_obsidian_file():
+    markdown_content = "# 新闻联播 2026-06-08\n\n## 主要内容\n\n1. 内容一\n"
+
     payload = build_latest_payload(
         broadcast_date=date(2026, 6, 8),
         repo="Ranphanie/xinwenlianbo-md",
         branch="main",
         markdown_path="generated/2026/2026-06-08 新闻联播.md",
+        markdown_content=markdown_content,
         obsidian_vault="新闻联播",
         obsidian_file="2026/2026-06-08 新闻联播",
         source_url="https://tv.cctv.com/2026/06/08/VIDEtarget.shtml",
@@ -181,6 +184,7 @@ def test_build_latest_payload_points_to_raw_markdown_and_obsidian_file():
         "https://raw.githubusercontent.com/Ranphanie/xinwenlianbo-md/main/"
         "generated/2026/2026-06-08%20%E6%96%B0%E9%97%BB%E8%81%94%E6%92%AD.md"
     )
+    assert payload["markdown_content"] == markdown_content
     assert payload["obsidian"]["vault"] == "新闻联播"
     assert payload["obsidian"]["file"] == "2026/2026-06-08 新闻联播"
     assert "file=2026%2F2026-06-08%20%E6%96%B0%E9%97%BB%E8%81%94%E6%92%AD" in payload["obsidian"]["uri"]
