@@ -18,6 +18,7 @@ DEFAULT_REPO = "Ranphanie/xinwenlianbo-md"
 DEFAULT_BRANCH = "main"
 DEFAULT_OBSIDIAN_VAULT = "新闻联播"
 BEIJING_TZ = timezone(timedelta(hours=8))
+DEFAULT_BROADCAST_SWITCH_HOUR = 20
 
 
 class BroadcastNotReady(ValueError):
@@ -41,6 +42,18 @@ def beijing_today() -> date:
 
 def now_beijing() -> datetime:
     return datetime.now(BEIJING_TZ)
+
+
+def resolve_default_broadcast_date(current_time: datetime | None = None) -> date:
+    beijing_time = current_time or now_beijing()
+    if beijing_time.tzinfo is None:
+        beijing_time = beijing_time.replace(tzinfo=BEIJING_TZ)
+    else:
+        beijing_time = beijing_time.astimezone(BEIJING_TZ)
+
+    if beijing_time.hour < DEFAULT_BROADCAST_SWITCH_HOUR:
+        return beijing_time.date() - timedelta(days=1)
+    return beijing_time.date()
 
 
 def fetch_text(url: str, timeout: int = 20) -> str:
@@ -270,7 +283,7 @@ def build_skip_payload(broadcast_date: date, reason: str, message: str) -> dict:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="生成当天《新闻联播》Markdown 文稿。")
-    parser.add_argument("--date", help="指定日期，格式为 YYYY-MM-DD。默认使用北京时间当天。")
+    parser.add_argument("--date", help="指定日期，格式为 YYYY-MM-DD。默认按北京时间 20:00 前取前一天，20:00 起取当天。")
     parser.add_argument("--out-dir", default="generated", help="输出目录。")
     parser.add_argument("--repo", default=DEFAULT_REPO, help="GitHub 仓库，格式为 owner/repo。")
     parser.add_argument("--branch", default=DEFAULT_BRANCH, help="raw 文件所在分支。")
@@ -285,7 +298,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    broadcast_date = date.fromisoformat(args.date) if args.date else beijing_today()
+    broadcast_date = date.fromisoformat(args.date) if args.date else resolve_default_broadcast_date()
     payload = generate_or_skip(
         broadcast_date=broadcast_date,
         out_dir=Path(args.out_dir),

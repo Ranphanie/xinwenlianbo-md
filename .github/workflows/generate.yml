@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: "Optional broadcast date, YYYY-MM-DD. Leave empty for Beijing today."
+        description: "Optional broadcast date, YYYY-MM-DD. Empty uses Beijing rule: before 20:00 yesterday, from 20:00 today."
         required: false
         type: string
 

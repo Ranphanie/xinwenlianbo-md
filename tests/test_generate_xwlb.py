@@ -1,5 +1,5 @@
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -12,6 +12,7 @@ from scripts.generate_xwlb import (
     generate_or_skip,
     parse_episode_summary,
     render_markdown,
+    resolve_default_broadcast_date,
 )
 
 
@@ -52,6 +53,28 @@ def test_episode_url_matches_date_accepts_cctv_date_patterns():
         "https://tv.cctv.com/2026/06/09/VIDEabcdef260609.shtml",
         date(2026, 6, 10),
     )
+
+
+def test_resolve_default_broadcast_date_uses_previous_day_before_20_beijing():
+    result = resolve_default_broadcast_date(
+        datetime(2026, 6, 11, 19, 59, tzinfo=generate_xwlb.BEIJING_TZ)
+    )
+
+    assert result == date(2026, 6, 10)
+
+
+def test_resolve_default_broadcast_date_uses_current_day_at_20_beijing():
+    result = resolve_default_broadcast_date(
+        datetime(2026, 6, 11, 20, 0, tzinfo=generate_xwlb.BEIJING_TZ)
+    )
+
+    assert result == date(2026, 6, 11)
+
+
+def test_resolve_default_broadcast_date_converts_aware_time_to_beijing():
+    result = resolve_default_broadcast_date(datetime(2026, 6, 11, 12, 0, tzinfo=timezone.utc))
+
+    assert result == date(2026, 6, 11)
 
 
 def test_generate_or_skip_keeps_latest_when_episode_is_not_ready(tmp_path, monkeypatch):
