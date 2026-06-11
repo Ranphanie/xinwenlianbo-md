@@ -140,6 +140,7 @@ def build_latest_payload(
     repo: str,
     branch: str,
     markdown_path: str,
+    markdown_content: str,
     obsidian_vault: str,
     obsidian_file: str,
     source_url: str,
@@ -160,6 +161,7 @@ def build_latest_payload(
         "source_url": source_url,
         "markdown_path": markdown_path.replace("\\", "/"),
         "markdown_url": markdown_url,
+        "markdown_content": markdown_content,
         "obsidian": {
             "vault": obsidian_vault,
             "file": obsidian_file,
@@ -210,6 +212,7 @@ def generate(
         repo=repo,
         branch=branch,
         markdown_path=paths.markdown_path.as_posix(),
+        markdown_content=markdown,
         obsidian_vault=obsidian_vault,
         obsidian_file=paths.obsidian_file,
         source_url=episode_url,
