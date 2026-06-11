@@ -10,7 +10,7 @@
 https://raw.githubusercontent.com/Ranphanie/xinwenlianbo-md/main/generated/latest.json
 ```
 
-`latest.json` 会包含当天 Markdown 下载地址、Obsidian vault 名称、目标笔记路径和可打开的 Obsidian URI。
+`latest.json` 会包含当天 Markdown 正文、Markdown 下载地址、Obsidian vault 名称、目标笔记路径和可打开的 Obsidian URI。
 
 ## 保存规则
 
@@ -72,15 +72,13 @@ python scripts/generate_xwlb.py --out-dir generated --repo Ranphanie/xinwenlianb
      ```
 2. **从输入中获取字典**
 3. **从字典获取值**
-   - 键：`markdown_url`
-4. **获取 URL 内容**
-   - URL 使用上一步得到的 `markdown_url`
-5. **拷贝到剪贴板**
-   - 内容使用上一步下载到的 Markdown 正文
-6. **从字典获取值**
+   - 键：`markdown_content`
+4. **拷贝到剪贴板**
+   - 内容使用上一步得到的 `markdown_content`
+5. **从字典获取值**
    - 回到第 2 步得到的字典
    - 键路径：`obsidian.uri`
-7. **打开 URL**
+6. **打开 URL**
    - URL 使用上一步得到的 Obsidian URI
 
 完成后，在「自动化」里创建个人自动化：
