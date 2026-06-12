@@ -2,10 +2,9 @@ name: Generate Xinwenlianbo Markdown
 
 on:
   schedule:
-    # Beijing evening run. Avoid exact hours because GitHub scheduled
-    # workflows can be delayed or dropped during high-load minutes.
-    - cron: "15 21 * * *"
-      timezone: "Asia/Shanghai"
+    # GitHub schedule uses UTC. 13:15 UTC = 21:15 Beijing time.
+    # Avoid exact hours because GitHub scheduled workflows can be delayed or dropped during high-load minutes.
+    - cron: "15 13 * * *"
   workflow_dispatch:
     inputs:
       date:
