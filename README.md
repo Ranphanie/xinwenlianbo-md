@@ -40,11 +40,11 @@ python scripts/generate_xwlb.py --out-dir generated --repo Ranphanie/xinwenlianb
 
 ## GitHub Actions
 
-`.github/workflows/generate.yml` 会在北京时间晚间自动运行：
+`.github/workflows/generate.yml` 会在每天 UTC 13:15 自动运行，对应北京时间 21:15：
 
-- 21:15
+- UTC 13:15 / 北京时间 21:15
 
-这个时间显式使用 `Asia/Shanghai` 时区，并避开整点高峰。脚本未指定 `--date` 时会按北京时间自动选择目标日期：20:00 前默认前一天，20:00 起默认当天。如果央视栏目页还没有目标日期节目，或链接日期与目标日期不一致，脚本只输出 `skipped` 状态，不更新 `latest.json`，避免手机打开错误文稿。
+这个时间直接使用 GitHub Actions 的 UTC cron 写法 `15 13 * * *`，并避开整点高峰。脚本未指定 `--date` 时会按北京时间自动选择目标日期：20:00 前默认前一天，20:00 起默认当天。如果央视栏目页还没有目标日期节目，或链接日期与目标日期不一致，脚本只输出 `skipped` 状态，不更新 `latest.json`，避免手机打开错误文稿。
 
 流程如下：
 
